@@ -1,3 +1,14 @@
+import {
+  BookingActionForbiddenError,
+  BookingInPastError,
+  BookingQuotaExceededError,
+  CancellationWindowClosedError,
+  CapacityExceededError,
+  InvalidTimeRangeError,
+  OutsideBusinessHoursError,
+  RoomInactiveError,
+  TimeSlotUnavailableError,
+} from '../errors/booking.errors';
 import { Booking } from '../entities/booking.entity';
 import { Room } from '../entities/room.entity';
 import { TimeRange } from '../value-objects/time-range.vo';
@@ -44,8 +55,56 @@ export interface CancellationContext {
  * any of them has moved the domain out of the domain.
  */
 export function assertBookingIsAllowed(context: BookingCreationContext): void {
-  // TODO(candidate)
-  throw new Error('assertBookingIsAllowed is not implemented');
+  const { room, range, attendeeCount, now, bookingsInWindow, upcomingBookingsForOrganizer, config } =
+    context;
+
+  if (!room.isActive) {
+    throw new RoomInactiveError();
+  }
+
+  if (range.start.getTime() < now.getTime()) {
+    throw new BookingInPastError();
+  }
+
+  if (
+    range.crossesUtcMidnight() ||
+    range.startMinuteOfDay < room.opensAt ||
+    range.endMinuteOfDay > room.closesAt
+  ) {
+    throw new OutsideBusinessHoursError();
+  }
+
+  if (!range.startsOnGrid(BOOKING_START_GRID_MINUTES)) {
+    throw new InvalidTimeRangeError('start must fall on the booking grid');
+  }
+
+  if (range.durationMinutes < MIN_BOOKING_MINUTES) {
+    throw new InvalidTimeRangeError(`duration must be at least ${MIN_BOOKING_MINUTES} minutes`);
+  }
+
+  if (range.durationMinutes > room.maxBookingMinutes) {
+    throw new InvalidTimeRangeError(`duration must not exceed ${room.maxBookingMinutes} minutes`);
+  }
+
+  if (attendeeCount < 1 || attendeeCount > room.capacity) {
+    throw new CapacityExceededError();
+  }
+
+  if (upcomingBookingsForOrganizer >= config.maxActiveBookingsPerUser) {
+    throw new BookingQuotaExceededError();
+  }
+
+  const buffer = room.bufferMinutes;
+  for (const existing of bookingsInWindow) {
+    if (!existing.isConfirmed) {
+      continue;
+    }
+    const blockedByExisting = existing.range.extendEndBy(buffer);
+    const blocksExisting = range.extendEndBy(buffer);
+    if (range.overlaps(blockedByExisting) || existing.range.overlaps(blocksExisting)) {
+      throw new TimeSlotUnavailableError();
+    }
+  }
 }
 
 /**
@@ -55,6 +114,20 @@ export function assertBookingIsAllowed(context: BookingCreationContext): void {
  * SIGNATURE FROZEN.
  */
 export function assertCancellationIsAllowed(context: CancellationContext): void {
-  // TODO(candidate)
-  throw new Error('assertCancellationIsAllowed is not implemented');
+  const { booking, actorUserId, actorIsManager, now, config } = context;
+
+  const isOrganizer = booking.organizerId === actorUserId;
+  if (!isOrganizer && !actorIsManager) {
+    throw new BookingActionForbiddenError();
+  }
+
+  if (booking.status === 'CANCELLED') {
+    return;
+  }
+
+  const cutoffMs = config.cancellationCutoffMinutes * 60 * 1000;
+  const windowClosesAt = booking.range.start.getTime() - cutoffMs;
+  if (now.getTime() >= windowClosesAt) {
+    throw new CancellationWindowClosedError();
+  }
 }

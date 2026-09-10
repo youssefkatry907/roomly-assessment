@@ -5,7 +5,6 @@ import { Clock } from './clock.port';
 @Injectable()
 export class SystemClock implements Clock {
   public now(): Date {
-    // TODO(candidate)
-    throw new Error('SystemClock.now is not implemented');
+    return new Date();
   }
 }

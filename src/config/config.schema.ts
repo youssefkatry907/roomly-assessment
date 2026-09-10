@@ -1,3 +1,5 @@
+import * as Joi from 'joi';
+
 /**
  * Boot-time validation of the environment.
  *
@@ -5,5 +7,10 @@
  * defaults, numbers arrive as numbers, and an invalid or missing variable
  * stops the process rather than being papered over.
  */
-// TODO(candidate)
-export const configValidationSchema = undefined as unknown as never;
+export const configValidationSchema = Joi.object({
+  NODE_ENV: Joi.string().required(),
+  PORT: Joi.number().integer().required(),
+  JWT_SECRET: Joi.string().min(1).required(),
+  MAX_ACTIVE_BOOKINGS_PER_USER: Joi.number().integer().min(1).required(),
+  CANCELLATION_CUTOFF_MINUTES: Joi.number().integer().min(0).required(),
+}).unknown(true);

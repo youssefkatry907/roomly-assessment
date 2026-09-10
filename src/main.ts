@@ -1,15 +1,20 @@
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import { getCorsOrigins } from './config/cors-config';
 
 /** GIVEN - the process entry point. */
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
 
-  const isProduction = process.env.NODE_ENV == 'prod';
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  app.enableCors({
+    origin: getCorsOrigins(),
+    credentials: true,
+  });
 
   if (!isProduction) {
-    app.enableCors({ origin: true, credentials: true });
     app.useLogger(['log', 'debug', 'verbose', 'warn', 'error']);
   }
 

@@ -1,7 +1,7 @@
 import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Request } from 'express';
-import { PRINCIPAL_KEY, Principal, Role } from './principal';
+import { PRINCIPAL_KEY, Principal } from './principal';
 import { IS_PUBLIC_KEY } from './public.decorator';
 import { TokenService } from './token.service';
 
@@ -37,9 +37,13 @@ export class AuthGuard implements CanActivate {
       throw new UnauthorizedException();
     }
 
-    // Older tokens were issued before roles existed; fall back to the role the
-    // client tells us so those sessions keep working.
-    const role = (claims.role ?? request.headers['x-user-role']) as Role;
+    // Defect fix: never trust client headers for role. Role must come from the
+    // verified token only (see Principal contract and R-TENANT / auth brief).
+    // Previous code fell back to `x-user-role`, allowing privilege escalation.
+    const role = claims.role;
+    if (role !== 'MEMBER' && role !== 'MANAGER') {
+      throw new UnauthorizedException();
+    }
 
     const principal: Principal = {
       userId: claims.userId,

@@ -1,5 +1,10 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post } from '@nestjs/common';
+import { CurrentUser } from '../../auth/current-user.decorator';
 import { Principal } from '../../auth/principal';
+import { CancelBookingHandler } from '../application/cancel-booking/cancel-booking.handler';
+import { CreateBookingHandler } from '../application/create-booking/create-booking.handler';
+import { GetBookingHandler } from '../application/get-booking/get-booking.handler';
+import { BookingResponse } from './dto/booking.response';
 import { CreateBookingDto } from './dto/create-booking.dto';
 
 /**
@@ -14,25 +19,44 @@ import { CreateBookingDto } from './dto/create-booking.dto';
  */
 @Controller('bookings')
 export class BookingController {
-  public constructor() {
-    // TODO(candidate)
-  }
+  public constructor(
+    private readonly createBooking: CreateBookingHandler,
+    private readonly cancelBooking: CancelBookingHandler,
+    private readonly getBooking: GetBookingHandler,
+  ) {}
 
   @Post()
-  public async create(@Body() dto: CreateBookingDto): Promise<unknown> {
-    // TODO(candidate)
-    throw new Error('BookingController.create is not implemented');
+  @HttpCode(HttpStatus.CREATED)
+  public async create(
+    @CurrentUser() principal: Principal,
+    @Body() dto: CreateBookingDto,
+  ): Promise<BookingResponse> {
+    const booking = await this.createBooking.execute({
+      principal,
+      roomId: dto.roomId,
+      startsAt: dto.startsAt,
+      endsAt: dto.endsAt,
+      attendeeCount: dto.attendeeCount,
+    });
+    return BookingResponse.from(booking, principal);
   }
 
   @Post(':id/cancel')
-  public async cancel(@Param('id') id: string): Promise<unknown> {
-    // TODO(candidate)
-    throw new Error('BookingController.cancel is not implemented');
+  @HttpCode(HttpStatus.OK)
+  public async cancel(
+    @CurrentUser() principal: Principal,
+    @Param('id') id: string,
+  ): Promise<BookingResponse> {
+    const booking = await this.cancelBooking.execute({ principal, bookingId: id });
+    return BookingResponse.from(booking, principal);
   }
 
   @Get(':id')
-  public async getOne(@Param('id') id: string): Promise<unknown> {
-    // TODO(candidate)
-    throw new Error('BookingController.getOne is not implemented');
+  public async getOne(
+    @CurrentUser() principal: Principal,
+    @Param('id') id: string,
+  ): Promise<BookingResponse> {
+    const booking = await this.getBooking.execute({ principal, bookingId: id });
+    return BookingResponse.from(booking, principal);
   }
 }

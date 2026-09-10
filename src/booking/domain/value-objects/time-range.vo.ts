@@ -15,29 +15,32 @@ export class TimeRange {
 
   /** @throws InvalidTimeRangeError when end is not strictly after start. */
   public static create(start: Date, end: Date): TimeRange {
-    // TODO(candidate)
-    throw new Error('TimeRange.create is not implemented');
+    if (end.getTime() <= start.getTime()) {
+      throw new InvalidTimeRangeError('end must be strictly after start');
+    }
+    return new TimeRange(new Date(start.getTime()), new Date(end.getTime()));
   }
 
   public get start(): Date {
-    // TODO(candidate) - callers must not be able to mutate the range.
-    throw new Error('TimeRange.start is not implemented');
+    return new Date(this._start.getTime());
   }
 
   public get end(): Date {
-    // TODO(candidate)
-    throw new Error('TimeRange.end is not implemented');
+    return new Date(this._end.getTime());
   }
 
   public get durationMinutes(): number {
-    // TODO(candidate)
-    throw new Error('TimeRange.durationMinutes is not implemented');
+    return (this._end.getTime() - this._start.getTime()) / (60 * 1000);
   }
 
   /** Minutes from UTC midnight of the day the range starts on. */
   public get startMinuteOfDay(): number {
-    // TODO(candidate)
-    throw new Error('TimeRange.startMinuteOfDay is not implemented');
+    return (
+      this._start.getUTCHours() * 60 +
+      this._start.getUTCMinutes() +
+      this._start.getUTCSeconds() / 60 +
+      this._start.getUTCMilliseconds() / 60_000
+    );
   }
 
   /**
@@ -46,30 +49,35 @@ export class TimeRange {
    * midnight. This is what makes "ends exactly at closing time" expressible.
    */
   public get endMinuteOfDay(): number {
-    // TODO(candidate)
-    throw new Error('TimeRange.endMinuteOfDay is not implemented');
+    const startDayUtc = Date.UTC(
+      this._start.getUTCFullYear(),
+      this._start.getUTCMonth(),
+      this._start.getUTCDate(),
+    );
+    return (this._end.getTime() - startDayUtc) / (60 * 1000);
   }
 
   public crossesUtcMidnight(): boolean {
-    // TODO(candidate)
-    throw new Error('TimeRange.crossesUtcMidnight is not implemented');
+    return this.endMinuteOfDay > 24 * 60;
   }
 
   /** True when the two intervals share at least one instant. */
   public overlaps(other: TimeRange): boolean {
-    // TODO(candidate)
-    throw new Error('TimeRange.overlaps is not implemented');
+    return this._start.getTime() < other._end.getTime() && other._start.getTime() < this._end.getTime();
   }
 
   /** A new range with the same start and the end pushed out by `minutes`. */
   public extendEndBy(minutes: number): TimeRange {
-    // TODO(candidate)
-    throw new Error('TimeRange.extendEndBy is not implemented');
+    return TimeRange.create(this.start, new Date(this._end.getTime() + minutes * 60 * 1000));
   }
 
   /** True when the start sits exactly on a `minutes`-wide grid line. */
   public startsOnGrid(minutes: number): boolean {
-    // TODO(candidate)
-    throw new Error('TimeRange.startsOnGrid is not implemented');
+    const totalMinutes =
+      this._start.getUTCHours() * 60 +
+      this._start.getUTCMinutes() +
+      this._start.getUTCSeconds() / 60 +
+      this._start.getUTCMilliseconds() / 60_000;
+    return totalMinutes % minutes === 0;
   }
 }

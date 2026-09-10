@@ -48,4 +48,12 @@ describe('GET /rooms/:id/schedule', () => {
       .set('Authorization', ctx.bearer(ALICE))
       .expect(400);
   });
+
+  it('answers 400 for an impossible calendar day', async () => {
+    await request(ctx.app.getHttpServer())
+      .get(`/rooms/${ROOM_ATRIUM.id}/schedule`)
+      .query({ date: '2026-02-31' })
+      .set('Authorization', ctx.bearer(ALICE))
+      .expect(400);
+  });
 });

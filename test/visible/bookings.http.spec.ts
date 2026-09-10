@@ -1,6 +1,6 @@
 import request from 'supertest';
 import { createTestApp, TestApp } from '../support/test-app';
-import { ALICE, ROOM_ATRIUM, DAY } from '../support/fixtures';
+import { ALICE, BOB, ROOM_ATRIUM, DAY } from '../support/fixtures';
 
 describe('POST /bookings', () => {
   let ctx: TestApp;
@@ -61,7 +61,49 @@ describe('POST /bookings', () => {
       .expect(400);
   });
 
+  it('answers 400 when timestamps lack a timezone', async () => {
+    await request(ctx.app.getHttpServer())
+      .post('/bookings')
+      .set('Authorization', ctx.bearer(ALICE))
+      .send({
+        ...body,
+        startsAt: `${DAY}T10:00:00.000`,
+        endsAt: `${DAY}T11:00:00.000`,
+      })
+      .expect(400);
+  });
+
   it('leaves /health public', async () => {
     await request(ctx.app.getHttpServer()).get('/health').expect(200, { status: 'ok' });
+  });
+});
+
+describe('POST /bookings/:id/cancel', () => {
+  let ctx: TestApp;
+
+  beforeEach(async () => {
+    ctx = await createTestApp();
+  });
+
+  afterEach(async () => {
+    await ctx.close();
+  });
+
+  it('answers 404 when a member cancels another member booking', async () => {
+    const created = await request(ctx.app.getHttpServer())
+      .post('/bookings')
+      .set('Authorization', ctx.bearer(ALICE))
+      .send({
+        roomId: ROOM_ATRIUM.id,
+        startsAt: `${DAY}T10:00:00.000Z`,
+        endsAt: `${DAY}T11:00:00.000Z`,
+        attendeeCount: 2,
+      })
+      .expect(201);
+
+    await request(ctx.app.getHttpServer())
+      .post(`/bookings/${created.body.id}/cancel`)
+      .set('Authorization', ctx.bearer(BOB))
+      .expect(404);
   });
 });

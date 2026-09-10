@@ -8,3 +8,4 @@ process.env.PORT = '3000';
 process.env.JWT_SECRET = 'test-secret-not-used-in-production';
 process.env.MAX_ACTIVE_BOOKINGS_PER_USER = '3';
 process.env.CANCELLATION_CUTOFF_MINUTES = '60';
+process.env.CORS_ORIGINS = '';

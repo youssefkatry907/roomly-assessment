@@ -9,7 +9,18 @@ import { Principal, Role } from './principal';
  */
 @Injectable()
 export class TokenService {
-  private readonly secret: string = process.env.JWT_SECRET ?? 'dev-secret-change-me';
+  private readonly secret: string;
+
+  public constructor() {
+    // Defect fix: no default value. A missing JWT_SECRET must fail
+    // (previous `?? 'dev-secret-change-me'` would mint forgeable tokens in
+    // production if the env var was omitted).
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+      throw new Error('JWT_SECRET is required and must not be empty.');
+    }
+    this.secret = secret;
+  }
 
   public sign(principal: Principal): string {
     const payload = Buffer.from(JSON.stringify(principal)).toString('base64url');

@@ -1,4 +1,12 @@
-import { ArgumentsHost, Catch, ExceptionFilter } from '@nestjs/common';
+import {
+  ArgumentsHost,
+  Catch,
+  ExceptionFilter,
+  HttpException,
+  HttpStatus,
+} from '@nestjs/common';
+import { Response } from 'express';
+import { DomainError } from '../errors/domain.error';
 
 /**
  * The single place a DomainError becomes an HTTP response.
@@ -13,7 +21,46 @@ import { ArgumentsHost, Catch, ExceptionFilter } from '@nestjs/common';
 @Catch()
 export class DomainExceptionFilter implements ExceptionFilter {
   public catch(exception: unknown, host: ArgumentsHost): void {
-    // TODO(candidate)
-    throw new Error('DomainExceptionFilter.catch is not implemented');
+    const response = host.switchToHttp().getResponse<Response>();
+
+    if (exception instanceof HttpException) {
+      const status = exception.getStatus();
+      const body = exception.getResponse();
+      response.status(status).json(typeof body === 'string' ? { message: body } : body);
+      return;
+    }
+
+    if (exception instanceof DomainError) {
+      const status = DomainExceptionFilter.statusFor(exception.code);
+      response.status(status).json({ code: exception.code, message: exception.message });
+      return;
+    }
+
+    response.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+      code: 'INTERNAL_ERROR',
+      message: 'An unexpected error occurred.',
+    });
+  }
+
+  private static statusFor(code: string): number {
+    switch (code) {
+      case 'TIME_SLOT_UNAVAILABLE':
+      case 'CANCELLATION_WINDOW_CLOSED':
+        return HttpStatus.CONFLICT;
+      case 'ROOM_NOT_FOUND':
+      case 'BOOKING_NOT_FOUND':
+        return HttpStatus.NOT_FOUND;
+      case 'BOOKING_ACTION_FORBIDDEN':
+        return HttpStatus.FORBIDDEN;
+      case 'INVALID_TIME_RANGE':
+      case 'OUTSIDE_BUSINESS_HOURS':
+      case 'CAPACITY_EXCEEDED':
+      case 'BOOKING_QUOTA_EXCEEDED':
+      case 'BOOKING_IN_PAST':
+      case 'ROOM_INACTIVE':
+        return HttpStatus.BAD_REQUEST;
+      default:
+        return HttpStatus.INTERNAL_SERVER_ERROR;
+    }
   }
 }

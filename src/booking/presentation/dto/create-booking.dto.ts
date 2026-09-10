@@ -1,24 +1,23 @@
+import { IsInt, IsISO8601, IsNotEmpty, IsString, Min } from 'class-validator';
+
 /**
  * The request body for POST /bookings.
  *
- * Inherited from a previous iteration of this service. Validation decorators
- * were never added. `startsAt` and `endsAt` arrive as ISO-8601 strings and the
- * handler needs Dates.
- *
- * TODO(candidate): validate this properly - and look hard at every field
- * before you keep it.
+ * Identity (tenantId / organizerId) comes from the verified principal only —
+ * those fields must not appear here.
  */
 export class CreateBookingDto {
-  public roomId: string;
+  @IsString()
+  @IsNotEmpty()
+  public roomId!: string;
 
-  public startsAt: string;
+  @IsISO8601({ strict: true })
+  public startsAt!: string;
 
-  public endsAt: string;
+  @IsISO8601({ strict: true })
+  public endsAt!: string;
 
-  public attendeeCount: number;
-
-  // The mobile client sends these along with the rest of the form.
-  public tenantId: string;
-
-  public organizerId: string;
+  @IsInt()
+  @Min(1)
+  public attendeeCount!: number;
 }

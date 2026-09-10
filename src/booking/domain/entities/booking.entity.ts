@@ -26,64 +26,58 @@ export class Booking {
 
   /** A newly organised booking. Starts CONFIRMED. */
   public static create(input: Omit<BookingProps, 'status'>): Booking {
-    // TODO(candidate)
-    throw new Error('Booking.create is not implemented');
+    return Booking.reconstitute({ ...input, status: 'CONFIRMED' });
   }
 
   /** Rebuild from storage, invariants re-checked. */
   public static reconstitute(props: BookingProps): Booking {
-    // TODO(candidate)
-    throw new Error('Booking.reconstitute is not implemented');
+    if (props.attendeeCount < 1) {
+      throw new Error(`Booking ${props.id} has attendeeCount below one.`);
+    }
+    return new Booking({
+      ...props,
+      createdAt: new Date(props.createdAt.getTime()),
+    });
   }
 
   public get id(): string {
-    // TODO(candidate)
-    throw new Error('Booking.id is not implemented');
+    return this.props.id;
   }
 
   public get tenantId(): string {
-    // TODO(candidate)
-    throw new Error('Booking.tenantId is not implemented');
+    return this.props.tenantId;
   }
 
   public get roomId(): string {
-    // TODO(candidate)
-    throw new Error('Booking.roomId is not implemented');
+    return this.props.roomId;
   }
 
   public get organizerId(): string {
-    // TODO(candidate)
-    throw new Error('Booking.organizerId is not implemented');
+    return this.props.organizerId;
   }
 
   public get range(): TimeRange {
-    // TODO(candidate)
-    throw new Error('Booking.range is not implemented');
+    return this.props.range;
   }
 
   public get attendeeCount(): number {
-    // TODO(candidate)
-    throw new Error('Booking.attendeeCount is not implemented');
+    return this.props.attendeeCount;
   }
 
   public get status(): BookingStatus {
-    // TODO(candidate)
-    throw new Error('Booking.status is not implemented');
+    return this.props.status;
   }
 
   public get createdAt(): Date {
-    // TODO(candidate)
-    throw new Error('Booking.createdAt is not implemented');
+    return new Date(this.props.createdAt.getTime());
   }
 
   public get isConfirmed(): boolean {
-    // TODO(candidate)
-    throw new Error('Booking.isConfirmed is not implemented');
+    return this.props.status === 'CONFIRMED';
   }
 
   public hasStartedBy(now: Date): boolean {
-    // TODO(candidate)
-    throw new Error('Booking.hasStartedBy is not implemented');
+    return now.getTime() >= this.props.range.start.getTime();
   }
 
   /**
@@ -92,12 +86,22 @@ export class Booking {
    * Cancelling something already cancelled is not an error.
    */
   public cancel(): Booking {
-    // TODO(candidate)
-    throw new Error('Booking.cancel is not implemented');
+    if (this.props.status === 'CANCELLED') {
+      return this;
+    }
+    return Booking.reconstitute({ ...this.toProps(), status: 'CANCELLED' });
   }
 
   public toProps(): BookingProps {
-    // TODO(candidate)
-    throw new Error('Booking.toProps is not implemented');
+    return {
+      id: this.props.id,
+      tenantId: this.props.tenantId,
+      roomId: this.props.roomId,
+      organizerId: this.props.organizerId,
+      range: this.props.range,
+      attendeeCount: this.props.attendeeCount,
+      status: this.props.status,
+      createdAt: new Date(this.props.createdAt.getTime()),
+    };
   }
 }

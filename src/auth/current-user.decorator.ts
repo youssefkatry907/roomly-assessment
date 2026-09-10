@@ -1,5 +1,5 @@
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
-import { Principal } from './principal';
+import { PRINCIPAL_KEY, Principal } from './principal';
 
 /**
  * Hands a controller the verified principal. This is the ONLY way a controller
@@ -9,7 +9,7 @@ import { Principal } from './principal';
  */
 export const CurrentUser = createParamDecorator(
   (_data: unknown, context: ExecutionContext): Principal => {
-    // TODO(candidate)
-    throw new Error('CurrentUser is not implemented');
+    const request = context.switchToHttp().getRequest<Record<string, unknown>>();
+    return request[PRINCIPAL_KEY] as Principal;
   },
 );
